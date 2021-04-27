@@ -22,6 +22,8 @@ net.type = "signed"
 
 args <- commandArgs(trailingOnly=T)
 tissue.type <- args[1]
+print(tissue.type)
+
 
 if(is.na(tissue.type)){
   tissue.type = "Islet"
