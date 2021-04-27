@@ -164,8 +164,8 @@ decreasing = FALSE){
 ### Module Enrichment
 
 ```{r enrichment, fig.height = 25, fig.width = 7}
-module.genes <- module_genes(wgcna.net)
-enrich.file <- file.path(wgcna.dir, "enrich.RDS")
+module.genes <- module_genes(co.exp.net)
+enrich.file <- file.path(co.exp.dir, "enrich.RDS")
 if(!file.exists(enrich.file)){
   enrich <- lapply(module.genes, function(x) gost(x, organism = "mmusculus",
   sources = c("GO", "KEGG", "REACTOME")))
@@ -186,7 +186,7 @@ paste(tissue.type, "Modules"), n.terms = 5)
 We looked at the correlations between each module eigengene and each trait.
 
 ```{r mod_eig}
-mod.eig <- as.matrix(wgcna.net$MEs)
+mod.eig <- as.matrix(co.exp.net$MEs)
 rownames(mod.eig) <- rownames(adj.expr)
 
 #align the phenotype and eigengene matrices
@@ -224,8 +224,8 @@ if(!data.loaded){
 }
 ```
 
-```{r map_islet_modules, fig.width = 12, fig.height = 10}
-scan.file <- here("Results", "WGCNA_Clusters", tissue.type, "qtl.scan.RDS")
+```{r map_islet_modules, fig.width = 12, fig.height = 8}
+scan.file <- here("Results", "CoExpNet_Clusters", tissue.type, "qtl.scan.RDS")
 if(!file.exists(scan.file)){
  scans <- scan1(genoprobs, mod.eig)
  saveRDS(scans, scan.file)

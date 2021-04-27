@@ -240,7 +240,7 @@ if(!data.loaded){
 }
 ```
 
-```{r map_islet_modules, fig.width = 12, fig.height = 10}
+```{r map_islet_modules, fig.width = 12, fig.height = 8}
 scan.file <- here("Results", "WGCNA_Clusters", tissue.type, "qtl.scan.RDS")
 if(!file.exists(scan.file)){
  scans <- scan1(genoprobs, mod.eig)
