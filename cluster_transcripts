@@ -8,10 +8,10 @@
 #SBATCH -e slurm.%N.%j.err # STDERR
 #SBATCH --mail-user=anna.tyler@jax.org
 #SBATCH --mail-type=END
-# example use: sbatch cluster_transcripts
+# example use: sbatch --export=tissueType="Islet" cluster_transcripts
 
 cd $SLURM_SUBMIT_DIR
 
 module load singularity
 
-singularity exec /projects/carter-lab/atyler/Containers/cape_transcripts_latest.sif Rscript -e 'rmarkdown::render(here::here("Documents", "1.Cluster_Transcripts_WGCNA.Rmd"))'
+singularity exec /projects/carter-lab/atyler/Containers/cape_transcripts_latest.sif Rscript -e 'rmarkdown::render(here::here("Documents", "1.Cluster_Transcripts_WGCNA.Rmd"))' --args "$tissueType" 
