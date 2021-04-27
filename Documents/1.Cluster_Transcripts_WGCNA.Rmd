@@ -43,7 +43,7 @@ for(i in 1:length(all.fun)){source(all.fun[i])}
 ```
 
 ```{r load_libraries, message = FALSE, warning = FALSE, error = FALSE}
-all.packages <- c("pheatmap", "gprofiler2", "WGCNA")
+all.packages <- c("pheatmap", "gprofiler2", "WGCNA", "qtl2")
 load_libraries(all.packages)
 ```
 
@@ -202,14 +202,14 @@ paste(tissue.type, "Modules"), n.terms = 5)
 We looked at the correlations between each module eigengene and each trait.
 
 ```{r mod_eig}
-mod.eig <- as.matrix(tissue.net$MEs)
+mod.eig <- as.matrix(wgcna.net$MEs)
 rownames(mod.eig) <- rownames(adj.expr)
 
 #align the phenotype and eigengene matrices
 mod.pheno <- get.xz(mod.eig, adj.pheno)
 ```
 
-```{r align_mat, width = 10, height = 7}
+```{r align_mat, width = 12, height = 7}
 cor.mat <- matrix(NA, nrow = ncol(mod.pheno$X), ncol = ncol(mod.pheno$Z))
 rownames(cor.mat) <- paste0("ME", colnames(mod.pheno$X))
 colnames(cor.mat) <- colnames(mod.pheno$Z)
@@ -234,7 +234,7 @@ module is probably the same as Plum1 in Keller 2018.
 ```{r read_geno_data}
 #load genotype data
 all.var <- ls()
-data.loaded <- as.logical(which(all.var == "dataset.DO.Cube.Adipose"))
+data.loaded <- as.logical(length(which(all.var == "dataset.DO.Cube.Adipose")))
 if(!data.loaded){
   load(here("Data", "dataset.DO.CUBE.multissue.RData"))
 }
