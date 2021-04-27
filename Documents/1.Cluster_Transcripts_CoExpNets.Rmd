@@ -165,7 +165,7 @@ decreasing = FALSE){
 
 ```{r enrichment, fig.height = 25, fig.width = 7}
 module.genes <- module_genes(co.exp.net)
-enrich.file <- file.path(co.exp.dir, "enrich.RDS")
+enrich.file <- file.path(clust.dir, "enrich.RDS")
 if(!file.exists(enrich.file)){
   enrich <- lapply(module.genes, function(x) gost(x, organism = "mmusculus",
   sources = c("GO", "KEGG", "REACTOME")))
