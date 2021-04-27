@@ -44,7 +44,7 @@ for(i in 1:length(all.fun)){source(all.fun[i])}
 ```
 
 ```{r load_libraries, message = FALSE, warning = FALSE, error = FALSE}
-all.packages <- c("pheatmap", "gprofiler2", "CoExpNets")
+all.packages <- c("pheatmap", "gprofiler2", "CoExpNets", "qtl2")
 load_libraries(all.packages)
 ```
 
@@ -78,6 +78,7 @@ pheno <- read.csv(here("Data", "DO_clinical_phenotypes.csv"), stringsAsFactors =
 #subset to numeric traits
 num.pheno <- apply(pheno[,11:30], 2, as.numeric)
 rownames(num.pheno) <- rownames(pheno)
+adj.pheno <- adjust(num.pheno, tissue.covar)
 gene.table <- tissue.exp$annot.mrna
 ```
 
