@@ -1,0 +1,594 @@
+---
+title: "CAPE in using clustered transcripts in multiple tissues"
+author: Anna L Tyler
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    code_folding: hide
+    collapsed: no
+    toc: yes
+    toc_float: yes
+---
+
+```{r set_type}
+#set testing to FALSE to run full gene expression networks and to TRUE
+#to run a subset.
+#testing = TRUE
+testing = FALSE
+is.interactive = FALSE
+#is.interactive = TRUE
+
+args <- commandArgs(trailingOnly=T)
+tissue.type <- args[1]
+
+if(is.na(tissue.type)){
+  tissue.type = "Islet"
+}
+```
+
+The purpose of this workflow is to cluster bulk tissue gene expression 
+from the DO mice with WGCNA and CoExpNets. Downstream analyses will
+compare the clustering from these two methods.
+
+This workflow cluster transcripts separately in the specified tissue,
+and runs Islet by default. Other possible tissues are Adipose, Liver,
+and SkeletalMuscle.
+
+
+liver,
+pancreatic islets, and adipose tissue. We run functional enrichment
+on each to characterize the modules.
+
+We use these modules in place of genotypes in a CAPE model
+to explain traits through interactions bewteen multi-tissue gene expression. 
+For traits, we will use the first three eigentraits of the trait 
+matrix including all traits except for weight.
+
+
+```{r load_code}
+library("here")
+all.fun <- list.files(here("Code"), full.names = TRUE, pattern = ".R")
+for(i in 1:length(all.fun)){source(all.fun[i])}
+```
+
+```{r load_libraries, message = FALSE, warning = FALSE, error = FALSE}
+all.packages <- c("pheatmap", "qtl2", "gprofiler2", "cape", "CoExpNets", "abind")
+load_libraries(all.packages)
+```
+
+
+```{r read_data}
+all.var <- ls()
+data.loaded <- as.logical(length(which(all.var == "dataset.clinical.phenotypes")))
+if(!data.loaded){
+  islets <- load(here("Data", "Attie_DO378_eQTL_viewer_v6.Rdata"))
+  other.tissues <- load(here("Data", "attie_all_qtl_viewer_v10_04.20.2020.RData"))
+  }
+```
+
+## Filter Expression
+Filter the expression matrices to include only genes that have at least
+a minimum amount of expression. 
+
+Here we use the raw expression matrix to select transcripts from the rank Z
+normalized expression matrix. 
+
+```{r adjust_covar}
+min.mean = 10
+
+islet.trans <- which(colMeans(dataset.islet.rnaseq$data$raw) > min.mean)
+islet.expr <- dataset.islet.rnaseq$data$rz[,islet.trans]
+islet.covar <- dataset.islet.rnaseq$covar.matrix
+adj.islet <- adjust(islet.expr, islet.covar)
+
+adipose.trans <- which(colMeans(dataset.DO.Cube.Adipose$data$raw) > min.mean)
+adipose.expr <- dataset.DO.Cube.Adipose$data$rz[,adipose.trans]
+adipose.covar <- dataset.DO.Cube.Adipose$covar.matrix
+adj.adipose <- adjust(adipose.expr, adipose.covar)
+
+liver.trans <- which(colMeans(dataset.DO.Cube.Liver$data$raw) > min.mean)
+liver.expr <- dataset.DO.Cube.Liver$data$rz[,liver.trans]
+liver.covar <- dataset.DO.Cube.Liver$covar.matrix
+adj.liver <- adjust(liver.expr, liver.covar)
+```
+
+
+The data set called Attie\_DO378\_eQTL\_viewer\_v6.Rdata contains the following
+elements:
+
+1. ensembl.version: the version of ensembl used
+2. K: a list of kinship LOCO matrices
+3. markers: a table of markers in the data set with names, chromosome, and position in 
+both bp and cM
+4. dataset.islet.modules: results from WGCNA
+5. dataset.clinical.phenotypes: clinical phenotypes including annotations and lod peaks
+6. genoprobs: genotype probabilities by chromosome (~4k markers per chromosome)
+7. map: marker map from R/qtl
+8. dataset.islet.rnaseq: rna seq data set inclusing annotations and lod peaks
+9. dataset.islet.hotspots: annotations of QTL/eQTL hotspots 
+
+Extract clinical traits, expression traits, and covariates from the 
+islet data set. We will use the first three principal components of 
+this trait matrix as our traits.
+
+```{r pheno}
+pheno <- as.matrix(dataset.clinical.phenotypes$pheno[,12:(ncol(dataset.clinical.phenotypes$pheno)-1)])
+num.pheno <- apply(pheno, 2, as.numeric)
+dimnames(num.pheno) <- dimnames(pheno)
+covar <- dataset.clinical.phenotypes$covar
+gene.table <- dataset.islet.rnaseq$annots
+```
+
+## Cluster gene expression using CoExpNets
+
+```{r clust}
+#Clustering takes a long time
+#set fullAnnotation to F because function defaults to human.
+#we will do this ourselves by hand.
+islet.net.file <- get.files(here("Results", "Expr_Clusters", "islets"), 
+want = c("net", "rds"), dont.want = "pdf", full.names = TRUE)
+if(length(islet.net.file) == 0){
+islet.net.file = CoExpNets::getDownstreamNetwork(tissue="islets",
+		net.type = "signed", debug=testing, expr.data = adj.islet,
+		job.path= here("Results", "Expr_Clusters", "islets"), save.plots = TRUE,
+    fullAnnotation = F)
+}
+islet.net <- readRDS(islet.net.file)
+
+adipose.net.file <- get.files(here("Results", "Expr_Clusters", "adipose"),
+want = c("net", "rds"), dont.want = "pdf", full.names = TRUE)
+if(length(adipose.net.file) == 0){
+adipose.net.file = CoExpNets::getDownstreamNetwork(tissue="adipose",
+		net.type = "signed", debug=testing, expr.data = adj.adipose,
+		job.path= here("Results", "Expr_Clusters", "adipose"), save.plots = TRUE,
+    fullAnnotation = F)
+}
+adipose.net <- readRDS(adipose.net.file)
+
+liver.net.file <- get.files(here("Results", "Expr_Clusters", "liver"),
+want = c("net", "rds"), dont.want = "pdf", full.names = TRUE)
+if(length(liver.net.file) == 0){
+  liver.net.file = CoExpNets::getDownstreamNetwork(tissue="liver", n.iterations=20,
+		net.type = "signed", debug=testing, expr.data = adj.liver,
+		job.path= here("Results", "Expr_Clusters", "liver"), save.plots = TRUE,
+    fullAnnotation = F)
+}
+liver.net <- readRDS(liver.net.file)
+```
+
+
+## Characterize Modules {.tabset .tabset-fade .tabset-pills}
+
+In each tissue we characterized the modules identified by CoExpNets using
+gprofiler2. We looked for enrichment in all GO domains, as well as KEGG 
+and REACTOME pathways.
+
+The following heatmaps show enriched terms for each set of modules.
+Shown are the top 10 most significant terms with fewer than 500 genes.
+The islet enrichment plot only shows the top 5 terms per group, since
+there are so many modules in this tissue.
+
+```{r get_module_genes}
+module_genes <- function(net.obj){
+  modules <- gsub("ME", "", colnames(net.obj$MEs))
+  moduleV <- net.obj$moduleColors
+  module.genes <- lapply(modules, function(x) names(moduleV)[which(moduleV == x)])
+  names(module.genes) <- modules
+  return(module.genes)
+}
+
+characterize_module <- function(enrich.table, n.terms = 10, 
+pval_thresh = 0.05, max.term.size = NULL, order.by = "p_value",
+decreasing = FALSE){
+
+  low.info.words <- c("to", "of", "the", "process", "or", "by", "in", "and")
+
+  if(length(enrich.table) == 0){return("none")}
+  
+  if(length(enrich.table) > 1){
+    enrichments <- enrich.table[[1]]
+    if(length(max.term.size) > 0){
+      term.locale <- which(enrichments[,"term_size"] <= max.term.size)
+    }else{
+      term.locale <- 1:nrow(enrichments)
+    }
+    if(length(pval_thresh) > 0){
+      sig.locale <- which(enrichments[,"p_value"] <= pval_thresh)
+    }else{
+      sig.locale <- 1:nrow(enrichments)
+    }
+    take.locale <- intersect(term.locale, sig.locale)
+    all.terms <- enrichments[take.locale,"term_name"]
+    if(!is.null(order.by)){
+      ordered.terms <- enrichments[order(enrichments[,order.by], decreasing = decreasing),]
+    }else{
+      ordered.terms <- enrichments
+    }
+    all.terms <- ordered.terms[,"term_name"]
+    term.words <- unique(unlist(strsplit(all.terms, " ")))
+    pruned.words <- setdiff(term.words, low.info.words)
+    top.words <- pruned.words[1:n.terms]
+    mod.description <- paste(top.words, collapse = "-")
+    return(mod.description)
+  }
+}
+```
+
+### Liver Module Enrichment
+
+```{r liver_enrichment, fig.height = 25, fig.width = 7}
+liver.module.genes <- module_genes(liver.net)
+liver.enrich.file <- here("Results", "Expr_Clusters", "liver", "group_enrichment.RDS")
+if(!file.exists(liver.enrich.file)){
+  liver.enrich <- lapply(liver.module.genes, function(x) gost(x, organism = "mmusculus",
+  sources = c("GO", "KEGG", "REACTOME")))
+  saveRDS(liver.enrich, liver.enrich.file)
+}else{
+  liver.enrich <- readRDS(liver.enrich.file)
+}
+liver.mod.names <- sapply(liver.enrich, 
+function(x) characterize_module(x, n.terms = 5, order.by = "p_value", max.term.size = 500))
+#pdf("~/Desktop/liver.enrichment.pdf", width = 7, height = 25)
+plot.enrichment.group(liver.enrich, max.term.size = 500, plot.label = "Liver Modules",
+transformation = "sqrt", sort.by = "p_value")
+
+#dev.off()
+```
+
+### Adipose Module Enrichment
+
+```{r adipose_enrichment, fig.height = 20, fig.width = 7}
+adipose.module.genes <- module_genes(adipose.net)
+adipose.enrich.file <- here("Results", "Expr_clusters", "adipose", "adipose.enrich.RDS")
+if(!file.exists(adipose.enrich.file)){
+  adipose.enrich <- lapply(adipose.module.genes, function(x) gost(x, organism = "mmusculus",
+  sources = c("GO", "KEGG", "REACTOME")))
+  saveRDS(adipose.enrich, adipose.enrich.file)
+}else{
+  adipose.enrich <- readRDS(adipose.enrich.file)
+}
+adipose.mod.names <- sapply(adipose.enrich, 
+function(x) characterize_module(x, n.terms = 5, order.by = "p_value", max.term.size = 500))
+#pdf("~/Desktop/adipose.enrichment.pdf", width = 7, height = 25)
+plot.enrichment.group(adipose.enrich, max.term.size = 500, 
+plot.label = "Adipose Modules", transformation = "sqrt")
+#dev.off()
+```
+
+### Islet Module Enrichment
+
+```{r islet_enrichment, fig.height = 25, fig.width = 7}
+islet.module.genes <- module_genes(islet.net)
+islet.enrich.file <- here("Results", "Expr_clusters", "islets", "islet.enrich.RDS")
+if(!file.exists(islet.enrich.file)){
+  islet.enrich <- lapply(islet.module.genes, function(x) gost(x, organism = "mmusculus",
+  sources = c("GO", "KEGG", "REACTOME")))
+  saveRDS(islet.enrich, islet.enrich.file)
+}else{
+  islet.enrich <- readRDS(islet.enrich.file)
+}
+islet.mod.names <- sapply(islet.enrich, 
+function(x) characterize_module(x, n.terms = 5, order.by = "p_value", max.term.size = 500))
+#pdf("~/Desktop/islet.enrichment.pdf", width = 9, height = 32)
+plot.enrichment.group(islet.enrich, max.term.size = 500, plot.label = "Islet Modules",
+n.terms = 5)
+#dev.off()
+```
+
+## Trait-Module Correlation {.tabset .tabset-fade .tabset-pills}
+
+## Module overlap {.tabset .tabset-fade .tabset-pills}
+
+We were interested in comparing gene modules from the different tissues. 
+Here we compare them in two ways:
+  1. Jaccard index based on included genes
+  2. Correlation of module eigengenes
+
+
+```{r module_overlap}
+get_module_expression <- function(tissue.name, gene.id){
+  if(tissue.name == "liver"){
+    expr.mat <- adj.liver
+  }
+  if(tissue.name == "adipose"){
+    expr.mat <- adj.adipose
+  }
+  if(tissue.name == "islet" || tissue.name == "islets"){
+    expr.mat <- adj.islet
+  }
+
+  gene.locale <- match(gene.id, colnames(expr.mat))
+  return(expr.mat[,gene.locale])
+}
+
+get_module_eigengene <- function(tissue.name, mod.name){
+  
+  mod.eig.name <- paste0("ME", mod.name)
+
+  if(tissue.name == "liver"){
+    eig.net <- liver.net
+    ind.names <- rownames(adj.liver)
+  }
+  if(tissue.name == "adipose"){
+    eig.net <- adipose.net
+    ind.names <- rownames(adj.adipose)
+  }
+  if(tissue.name == "islet" || tissue.name == "islets"){
+    eig.net <- islet.net
+    ind.names <- rownames(adj.islet)
+  }
+
+  mod.locale <- which(names(eig.net$MEs) == mod.eig.name)
+  mod.eig <- eig.net$MEs[[mod.locale]]
+  names(mod.eig) <- ind.names
+  return(mod.eig)
+}
+
+names(liver.module.genes) <- paste("liver", names(liver.module.genes), liver.mod.names, sep = "-")
+names(islet.module.genes) <- paste("islet", names(islet.module.genes), islet.mod.names, sep = "-")
+names(adipose.module.genes) <- paste("adipose", names(adipose.module.genes), adipose.mod.names, sep = "-")
+all.module.genes <- c(liver.module.genes, islet.module.genes, adipose.module.genes)
+module.pairs <- pair.matrix(1:length(all.module.genes))
+
+module.jaccard <- module.cor <- matrix(0, nrow = length(all.module.genes), ncol = length(all.module.genes))
+rownames(module.jaccard) <- colnames(module.jaccard) <- rownames(module.cor) <- colnames(module.cor) <- names(all.module.genes)
+for(i in 1:nrow(module.pairs)){
+  mod1 <- module.pairs[i,1]
+  mod2 <- module.pairs[i,2]
+  mod.comp <- jaccard.ind(all.module.genes[[mod1]], all.module.genes[[mod2]])
+  module.jaccard[mod1,mod2] <- mod.comp
+  module.jaccard[mod2,mod1] <- mod.comp
+  mod1.name <- strsplit(names(all.module.genes)[mod1], "-")
+  mod2.name <- strsplit(names(all.module.genes)[mod2], "-")
+  mod1.eig <- get_module_eigengene(mod1.name[[1]][1], mod1.name[[1]][2])
+  mod2.eig <- get_module_eigengene(mod2.name[[1]][1], mod2.name[[1]][2])
+  
+  common.ind <- intersect(names(mod1.eig), names(mod2.eig))
+  mod1.ind.locale <- match(common.ind, names(mod1.eig))
+  mod2.ind.locale <- match(common.ind, names(mod2.eig))
+    
+  mod.eig.cor <- cor(mod1.eig[mod1.ind.locale], mod2.eig[mod2.ind.locale])
+  module.cor[mod1, mod2] <- mod.eig.cor
+  module.cor[mod2, mod1] <- mod.eig.cor
+}
+
+```
+
+The figures below the Jaccard indices for each set of modules compared
+against the modules from the other two tissues. 
+
+```{r plot_similarities, results = "asis", fig.width = 15, fig.height = 15}
+tissue.names <- c("liver", "adipose", "islet")
+for(i in 1:length(tissue.names)){
+  tissue.name  <- tissue.names[i]
+  cat("###", tissue.name, "\n")
+  tissue.locale <- grep(tissue.name, names(all.module.genes))
+  sub.jaccard <- module.jaccard[tissue.locale,-tissue.locale]
+  #pdf("~/Desktop/jaccard.pdf", width = 15, height = 15)
+  pheatmap(sub.jaccard)
+  #dev.off()
+  cat("\n\n")
+}
+```
+
+The figure below shows the correlation matrix for the module eigengenes. 
+Interestingly, the module eigengenes tend to cluster by tissue, and not
+as much by function. For example, modules labeled with "immune" tend not
+to cluster near each other.
+
+
+```{r mod_eig_cor, fig.width = 20, fig.height = 20}
+#pdf("~/Desktop/mod.cor.pdf", width = 20, height = 20)
+pheatmap(module.cor)
+#dev.off()
+
+```
+
+## Module mapping  {.tabset .tabset-fade .tabset-pills}
+
+Here we map each module eigengene from CoExpNets. Compare these to the 
+mapping of the WGCNA modules in Keller et al. 2018. They are pretty grassy,
+except for islet module skyblue3, which has a whopping QTL. I think this 
+module is probably the same as Plum1 in Keller 2018.
+
+The islet modules are the only ones we can compare to the Keller paper 
+directly. We see a lot of the same signals with similar LOD scores.
+We have more modules than were reported previously. We see the same
+chromosome 11 hotspot spanning multiple modules. We also see a similar
+pleiotropic region on the X.
+
+### Liver Modules
+```{r map_liver_mods, fig.width = 12, fig.height = 5}
+liver.scan.file <- here("Results", "Expr_Clusters", "liver", "liver.scan.RDS")
+if(!file.exists(liver.scan.file)){
+  liver.scans <- scan1(genoprobs, liver.net$MEs)
+  saveRDS(liver.scans, liver.scan.file)
+}else{
+  liver.scans <- readRDS(liver.scan.file)
+}
+par(xpd = TRUE)
+mod.dist <- dist(t(liver.scans))
+mod.order <- hclust(mod.dist)$order
+multilod.plot(liver.scans[,mod.order], map = map, lod.thresh = 5, border.lwd = 1, 
+row.names = names(liver.module.genes)[mod.order], row.name.shift = -500, 
+row.text.cex = 0.7, mar = c(2,20,2,0))
+par(xpd = FALSE)
+#plot(liver.scans, "MEsaddlebrown", map = map)
+```
+
+### Adipose Modules
+
+```{r map_adipose_mods, fig.width = 12, fig.height = 5}
+adipose.scan.file <- here("Results", "Expr_Clusters", "adipose", "adipose.scan.RDS")
+
+if(!file.exists(adipose.scan.file)){
+  adipose.scans <- scan1(genoprobs, adipose.net$MEs)
+  saveRDS(adipose.scans, adipose.scan.file)
+}else{
+  adipose.scans <- readRDS(adipose.scan.file)
+}
+mod.dist <- dist(t(adipose.scans))
+mod.order <- hclust(mod.dist)$order
+par(xpd = TRUE)
+multilod.plot(adipose.scans[,mod.order], map = map, lod.thresh = 4, border.lwd = 1, 
+row.names = names(adipose.module.genes)[mod.order], row.name.shift = -500, 
+row.text.cex = 0.7, mar = c(2,20,2,0))
+par(xpd = FALSE)
+#plot(adipose.scans, "MEpink", map = map)
+```
+
+### Islet Modules
+
+```{r map_islet_modules, fig.width = 12, fig.height = 10}
+islet.scan.file <- here("Results", "Expr_Clusters", "islets", "islet.scan.RDS")
+if(!file.exists(islet.scan.file)){
+ islet.scans <- scan1(genoprobs, islet.net$MEs)
+ saveRDS(islet.scans, islet.scan.file)
+}else{
+  islet.scans  <- readRDS(islet.scan.file)
+}
+mod.dist <- dist(t(islet.scans))
+mod.order <- hclust(mod.dist)$order
+islet.thresh <- islet.scans[,mod.order]
+islet.thresh[which(islet.thresh > 8)] <- 8
+par(xpd = TRUE)
+multilod.plot(islet.thresh, map = map, lod.thresh = 5, border.lwd = 1, 
+row.names = names(islet.module.genes)[mod.order], row.name.shift = -800, 
+row.text.cex = 0.7, mar = c(2, 20, 2, 0))
+par(xpd = FALSE)
+
+#plot(islet.scans, "MEskyblue3", map = map)
+#plot(islet.scans, "MEyellowgreen", map = map)
+```
+
+## Adjust clinical phenotypes for covariates  {.tabset .tabset-fade .tabset-pills}
+
+Adjust all traits for DO wave. Keep sex as an interactive covariate.
+
+### Before Adjusting
+
+```{r pheno_cor}
+pheatmap(cor(num.pheno, use = "pairwise.complete.obs"), 
+main = "Phenotype Correlations Before Adjusting for Covariates")
+```
+
+### After Adjusting
+
+```{r adj_pheno_cor}
+adj.pheno <- adjust(num.pheno, covar[,2:ncol(covar)])
+pheatmap(cor(adj.pheno, use = "pairwise.complete.obs"), 
+main = "Phenotype Correlations After Adjusting for Covariates")
+```
+
+## Create "Genotype" Object and Information Table
+In CAPE we use a table of information about the markers to keep track
+of where the markers are positioned on the genome. When we use modules,
+we lose positional information. Here we create a dummy table labeling 
+the modules from each tissue as being from a different chromosome.
+
+```{r genotypes}
+common.ind <- Reduce("intersect", list(rownames(liver.net$MEs), 
+rownames(adipose.net$MEs), rownames(islet.net$MEs)))
+liver.ind.locale <- match(common.ind, rownames(liver.net$MEs))
+adipose.ind.locale <- match(common.ind, rownames(adipose.net$MEs))
+islet.ind.locale <- match(common.ind, rownames(islet.net$MEs))
+
+liver.MEs <- liver.net$MEs[liver.ind.locale,]
+colnames(liver.MEs) <- names(liver.module.genes)
+
+adipose.MEs <- adipose.net$MEs[adipose.ind.locale,]
+colnames(adipose.MEs) <- names(adipose.module.genes)
+
+islet.MEs <- islet.net$MEs[islet.ind.locale,]
+colnames(islet.MEs) <- names(islet.module.genes)
+
+expr.geno <- cbind(liver.MEs, adipose.MEs, islet.MEs)
+```
+
+## Build CAPE objects
+
+Include all traits. Subsets of traits can be specified
+in the cape yml file.
+
+```{r to_geno}
+#This function takes a matrix of numeric values and converts
+#it into a 3D genotype array with the values scaled between
+#0 and 1.
+
+add_to_geno <- function(geno.obj, matX){
+
+  #scale to be between 0 and 1 for cape genotypes
+  pos.mat <- apply(matX, 2, function(x) x+abs(min(x)))
+  #boxplot(pos.mat)
+  scaled.mat <- apply(pos.mat, 2, function(x) x/max(x))
+  #boxplot(scaled.mat)
+
+  #create a 3D array of the scaled PCs
+  new.geno <- array(NA, dim = c(nrow(matX), ncol(geno.obj), ncol(matX)))
+  dimnames(new.geno) <- list(rownames(matX), colnames(geno.obj), colnames(scaled.mat))
+  for(i in 1:ncol(scaled.mat)){
+    one.mat <- matrix(scaled.mat[,i], nrow = nrow(scaled.mat), ncol = ncol(geno.obj))
+    new.geno[,,i] <- one.mat
+  }
+
+  aug.geno <- abind(geno.obj, new.geno, along = 3)
+  return(aug.geno)
+}
+
+```
+
+```{r subset_ind}
+#Subset one of the objects to only the individuals
+#with expression before we make the cape object.
+#Then we don't need to do build large objects and 
+#subset them later
+common.ind <- intersect(rownames(expr.geno), rownames(adj.pheno))
+ind.locale <- match(common.ind, rownames(adj.pheno))
+sub.obj <- dataset.clinical.phenotypes
+sub.obj$pheno <- adj.pheno[ind.locale,]
+```
+
+```{r cross_obj}
+cape.obj <- qtl2_to_cape(cross = sub.obj, genoprobs, map, covar[,1,drop=FALSE])
+data.obj <- cape.obj$data_obj
+geno.obj <- cape.obj$geno_obj
+
+#replace data.obj$pheno with the numeric phenotype matrix and covariates
+data.obj$pheno <- cbind(adj.pheno[ind.locale,], covar[ind.locale,1,drop=FALSE])
+
+#scale expression data and add to the genotype object
+new.geno.obj <- add_to_geno(geno.obj, expr.geno)
+
+#add the information for the new "genotypes" to the data object
+data.obj$geno_names <- dimnames(new.geno.obj)
+names(data.obj$geno_names) <- c("mouse", "allele", "locus")
+
+#add pseudo-chromosome data to data.obj
+#cbind(liver.MEs, adipose.MEs, islet.MEs)
+new.chr <- c(rep(1, ncol(liver.MEs)), rep(2, ncol(adipose.MEs)), rep(3, ncol(islet.MEs)))
+new.pos <- c(1:ncol(liver.MEs), 1:ncol(adipose.MEs), 1:ncol(islet.MEs))
+data.obj$chromosome <- c(data.obj$chromosome, new.chr)
+data.obj$marker_location <- c(data.obj$marker_location, new.pos)
+data.obj$marker_num <- 1:length(data.obj$chromosome)
+
+
+#if we only want to include expression values, take out the actual genotypes
+if(!include.real.genotypes){
+  true.geno.locale <- 1:dim(geno.obj)[3]
+  expr.geno.locale <- setdiff(1:dim(new.geno.obj)[3], true.geno.locale)
+  data.obj$chromosome <- data.obj$chromosome[expr.geno.locale]
+  data.obj$marker_location <- data.obj$marker_location[expr.geno.locale]
+  data.obj$marker_num <- 1:length(data.obj$chromosome)
+  #also reduce the "genotypes" to just two alleles.
+  #we don't need all 8 if we're just looking at expression
+  new.geno.obj <- new.geno.obj[,1:2,expr.geno.locale]
+  data.obj$geno_names[[3]] <- data.obj$geno_names[[3]][expr.geno.locale]
+  data.obj$geno_names[[2]] <- data.obj$geno_names[[2]][1:2]
+}
+
+saveRDS(data.obj, here("Data", paste0("cape_data_", geno.type, ".RDS")))
+saveRDS(new.geno.obj, here("Data", paste0("cape_geno_", geno.type, ".RDS")))
+```
+
+Now run 2.cape_run_expression.Rmd.
+Use the same data set name as set here.
