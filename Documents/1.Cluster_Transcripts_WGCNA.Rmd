@@ -21,7 +21,7 @@ net.type = "signed"
 #net.type = "unsigned"
 
 args <- commandArgs(trailingOnly=T)
-tissue.type <- as.character(trimws(args[1]))
+tissue.type <- args[1]
 
 if(is.na(tissue.type)){
   tissue.type = "Islet"
@@ -49,14 +49,10 @@ load_libraries(all.packages)
 
 
 ```{r read_data}
-data.dir <- here("Data", "RDS_datasets_tissues")
+data.dir <- here("Documents")
 
-sink("data_files.txt")
+sink(here("file_list.txt"))
 list.files(data.dir)
-sink(NULL)
-
-sink("data_files_full.txt")
-list.files(data.dir, full.names = TRUE)
 sink(NULL)
 
 exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
