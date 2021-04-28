@@ -59,7 +59,7 @@ load_libraries(all.packages)
 #sink()
 
 write.table(here(), here("Data", "test.txt"))
-write.table(list.files(here("Data")), here("Data", "test.data.txt"))
+write.table(list.files(here("Data", "RDS_datasets_tissues")), here("Data", "test.data2.txt"))
 
 exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
 tissue.exp <- readRDS(exp.file)
