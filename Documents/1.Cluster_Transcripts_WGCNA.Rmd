@@ -20,12 +20,12 @@ is.interactive = FALSE
 net.type = "signed"
 #net.type = "unsigned"
 
-args <- commandArgs(trailingOnly=T)
-tissue.type <- args[1]
+#args <- commandArgs(trailingOnly=T)
+#tissue.type <- args[1]
 
-if(is.na(tissue.type)){
+#if(is.na(tissue.type)){
   tissue.type = "Islet"
-}
+#}
 ```
 
 The purpose of this workflow is to cluster bulk tissue gene expression 
