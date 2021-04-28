@@ -50,7 +50,7 @@ load_libraries(all.packages)
 
 ```{r read_data}
 
-sink(here("Data", "debugging.txt"))
+sink(here("Data", "debugging2.txt"))
 print(tissue.type)
 print(getwd())
 list.files(here("Data"))
