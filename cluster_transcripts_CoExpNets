@@ -15,7 +15,6 @@ echo $SLURM_ARRAY_TASK_ID
 
 tissues=("Islet" "Liver" "Adipose" "SkeletalMuscle")
 
-tissueIdx
 tissueType=${tissues[$SLURM_ARRAY_TASK_ID]}
 echo $tissueType
 
