@@ -212,7 +212,7 @@ decreasing = FALSE){
 
 ### Module Enrichment
 
-```{r enrichment, fig.height = 25, fig.width = 7}
+```{r enrichment}
 module.genes <- module_genes(clust.net)
 saveRDS(module.genes, file.path(results.dir, "Module_Membership.RDS"))
 enrich.file <- file.path(results.dir, "enrich.RDS")
@@ -225,7 +225,9 @@ if(!file.exists(enrich.file)){
 }
 mod.names <- sapply(enrich, 
 function(x) characterize_module(x, n.terms = 5, order.by = "p_value", max.term.size = 500))
+```
 
+```{r plot_enrich}
 enrich_fig <- file.path(results.dir, "Enrichment.jpg")
 jpeg(enrich_fig, width = 9, height = 32, units = "in", res = 300)
 plot.enrichment.group(enrich, max.term.size = 500, plot.label = 
@@ -256,7 +258,7 @@ write.table(mod.eig, file.path(results.dir, "Module_Eigengenes.RDS"))
 mod.pheno <- get.xz(mod.eig, adj.pheno)
 ```
 
-```{r align_mat, width = 10, height = 7}
+```{r align_mat}
 cor.mat <- matrix(NA, nrow = ncol(mod.pheno$X), ncol = ncol(mod.pheno$Z))
 rownames(cor.mat) <- paste0("ME", colnames(mod.pheno$X))
 colnames(cor.mat) <- colnames(mod.pheno$Z)
@@ -268,7 +270,9 @@ for(i in 1:ncol(mod.pheno$X)){
     cor.mat[i,j] <- mod.trait.cor
   }
 }
+```
 
+```{r plot_cor}
 cor_fig <- file.path(results.dir, "Trait_Module_Correlation.Scans.jpg")
 jpeg(cor_fig, width = 8, height = 8, units = "in", res = 300)
 pheatmap(t(cor.mat))
@@ -315,8 +319,7 @@ thresh[which(thresh > 8)] <- 8
 
 ```{r plot_scan}
 scan_fig <- file.path(results.dir, "Module.Scans.jpg")
-jpeg(scan_fig, width = 12, height = 6, units = "in", 
-res = 300)
+jpeg(scan_fig, width = 12, height = 6, units = "in", res = 300)
 par(xpd = TRUE)
 multilod.plot(thresh, map = map, lod.thresh = 5, border.lwd = 1, 
 row.names = colnames(mod.eig)[mod.order], row.name.shift = -nrow(thresh)*0.011, 
