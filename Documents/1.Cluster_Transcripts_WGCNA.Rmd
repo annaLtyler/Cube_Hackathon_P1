@@ -20,8 +20,11 @@ is.interactive = FALSE
 net.type = "signed"
 #net.type = "unsigned"
 
+tissues=("Islet", "Liver", "Adipose", "SkeletalMuscle")
+
 args <- commandArgs(trailingOnly=T)
-tissue.type <- args[1]
+tissue.idx <- as.numeric(args[1])
+tissue.type <- tissues[tissue.idx]
 
 write.table(tissue.type, paste0("tissue.check.", tissue.type, ".txt"))
 
