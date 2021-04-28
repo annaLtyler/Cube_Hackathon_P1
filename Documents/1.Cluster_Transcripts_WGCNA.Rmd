@@ -52,6 +52,7 @@ load_libraries(all.packages)
 data.dir <- here("Documents")
 
 sink(here("file_list.txt"))
+print(getwd())
 list.files(data.dir)
 sink(NULL)
 
