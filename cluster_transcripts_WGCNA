@@ -20,4 +20,4 @@ echo $tissueType
 
 module load singularity
 
-singularity exec cape_transcripts_latest.sif Rscript -e 'rmarkdown::render(here::here("Documents", "1.Cluster_Transcripts_WGCNA.Rmd"))' --args "$tissueType" 
+singularity exec /projects/carter-lab/atyler/Containers/cape_transcripts_latest.sif Rscript -e 'rmarkdown::render(here::here("Documents", "1.Cluster_Transcripts_WGCNA.Rmd"))' --args "$tissueType"
