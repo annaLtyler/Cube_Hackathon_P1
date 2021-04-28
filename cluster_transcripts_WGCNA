@@ -15,9 +15,10 @@ echo $SLURM_ARRAY_TASK_ID
 
 tissues=("Islet" "Liver" "Adipose" "SkeletalMuscle")
 
-tissueType=${tissues[$SLURM_ARRAY_TASK_ID]}
+#tissueType=${tissues[$SLURM_ARRAY_TASK_ID]}
+tissueType=${tissues[2]}
 echo $tissueType
 
 module load singularity
 
-singularity exec /projects/carter-lab/atyler/Containers/cape_transcripts_latest.sif Rscript -e 'rmarkdown::render(here::here("Documents", "1.Cluster_Transcripts_WGCNA.Rmd"))' --args "$tissueType"
+singularity exec /projects/carter-lab/atyler/Containers/cape_transcripts_latest.sif Rscript -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts_WGCNA.Rmd'))" --args "$tissueType"
