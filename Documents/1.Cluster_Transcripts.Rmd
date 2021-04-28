@@ -99,7 +99,7 @@ genes across modules. It generally identifies clusters with more even
 size distribution and more specific enrichments than WGCNA.
 
 ```{r coExpNets}
-if(clust.type == "CoExpNets"){
+if(clust.type == "CoExpNet"){
     #Clustering takes a long time
     #set fullAnnotation to F because function defaults to human.
     #we will do this ourselves by hand.
@@ -162,7 +162,7 @@ there are so many modules in this tissue.
 ```{r get_module_genes}
 module_genes <- function(net.obj){
   modules <- gsub("ME", "", colnames(net.obj$MEs))
-  if(clust.type == "CoExpNets"){
+  if(clust.type == "CoExpNet"){
     moduleV <- net.obj$moduleColors
   }
   if(clust.type == "WGCNA"){
