@@ -93,6 +93,8 @@ enrichments than WGCNA.
 #Clustering takes a long time
 #set fullAnnotation to F because function defaults to human.
 #we will do this ourselves by hand.
+clust.results <- here("Results", "CoExpNet_Clusters")
+if(!file.exists(clust.results)){dir.create(clust.results)}
 clust.dir <- here("Results", "CoExpNet_Clusters", tissue.type)
 if(!file.exists(clust.dir)){dir.create(clust.dir)}
 net.file <- get.files(clust.dir, want = c("net", "rds"), dont.want = "pdf", 
