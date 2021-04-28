@@ -50,11 +50,15 @@ load_libraries(all.packages)
 
 ```{r read_data}
 
-sink(here("Data", "debugging2.txt"))
-print(tissue.type)
-print(getwd())
-list.files(here("Data"))
-sink()
+
+
+#sink(here("Data", "debugging2.txt"))
+#print(tissue.type)
+#print(getwd())
+#list.files(here("Data"))
+#sink()
+
+write.table(getwd(), here("Data", "test.txt"))
 
 exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
 tissue.exp <- readRDS(exp.file)
