@@ -21,7 +21,7 @@ net.type = "signed"
 #net.type = "unsigned"
 
 args <- commandArgs(trailingOnly=T)
-tissue.type <- args[1]
+tissue.type <- as.character(trimws(args[1]))
 
 if(is.na(tissue.type)){
   tissue.type = "Islet"
@@ -50,8 +50,9 @@ load_libraries(all.packages)
 
 ```{r read_data}
 #exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
-#testing hard coded path. This one isn't working
-exp.file <- paste0("/fastscratch/cube_hackathon/P1_modqtl_multi_tissue_gex/data/expression/do/rna-seq-do-data-release/RDS_datasets_tissues/", tissue.type, ".RDS")
+#testing hard coded path. Relative path with soft link files isn't working
+#for some reason
+exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
 tissue.exp <- readRDS(exp.file)
 ```
 
