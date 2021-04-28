@@ -49,7 +49,9 @@ load_libraries(all.packages)
 
 
 ```{r read_data}
-exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
+#exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
+#testing hard coded path. This one isn't working
+exp.file <- paste0("/fastscratch/cube_hackathon/P1_modqtl_multi_tissue_gex/Cube_Hackathon_P1/Data/RDS_datasets_tissues/", tissue.type, ".RDS")
 tissue.exp <- readRDS(exp.file)
 ```
 
