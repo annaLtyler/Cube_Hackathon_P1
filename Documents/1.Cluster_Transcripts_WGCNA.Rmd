@@ -51,7 +51,7 @@ load_libraries(all.packages)
 ```{r read_data}
 data.dir <- here("Documents")
 
-sink(here("debugging.txt"))
+sink("debugging.txt")
 print(tissue.type)
 print(getwd())
 list.files(data.dir)
