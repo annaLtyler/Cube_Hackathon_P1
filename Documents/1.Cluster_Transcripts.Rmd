@@ -33,7 +33,10 @@ if(is.na(tissue.type)){
 }
 
 library(here)
+clust.dir <- here("Results", paste0(clust.type, "_Clusters"))
+if(!file.exists(clust.dir)){dir.create(clust.dir)}
 results.dir <- here("Results", paste0(clust.type, "_Clusters"), tissue.type)
+if(!file.exists(results.dir)){dir.create(results.dir)}
 ```
 
 The purpose of this workflow is to cluster bulk tissue gene expression 
@@ -100,9 +103,6 @@ if(clust.type == "CoExpNets"){
     #Clustering takes a long time
     #set fullAnnotation to F because function defaults to human.
     #we will do this ourselves by hand.
-    clust.results <- here("Results", "CoExpNet_Clusters")
-    if(!file.exists(clust.results)){dir.create(clust.results)}
-    if(!file.exists(results.dir)){dir.create(results.dir)}
     net.file <- get.files(results.dir, want = c("net", "rds"), dont.want = "pdf", 
     full.names = TRUE, ignore.case = FALSE)
     if(length(net.file) == 0){
@@ -118,8 +118,6 @@ if(clust.type == "CoExpNets"){
 ```{r wgcna}
 if(clust.type == "WGCNA"){
     wgcna.results <- here("Results", "WGCNA_Clusters")
-    if(!file.exists(wgcna.results)){dir.create(wgcna.results)}
-    if(!file.exists(results.dir)){dir.create(results.dir)}
     wgcna.net.file <- file.path(results.dir, paste0("net.RDS"))
     if(!file.exists(wgcna.net.file)){
     enableWGCNAThreads()
@@ -280,7 +278,7 @@ dev.off()
 #pheatmap(t(cor.mat))
 ```
 
-```{r cor_plot, results = "asis", echo = FALSE, eval = FALSE}
+```{r cor_plot, results = "asis", echo = FALSE}
 cor_fig <- file.path(results.dir, "Trait_Module_Correlation.Scans.jpg")
 cat(paste0("![](", cor_fig, "){width=100%}\n"))
 ```
