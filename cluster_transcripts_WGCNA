@@ -15,8 +15,8 @@ echo $SLURM_ARRAY_TASK_ID
 
 tissues=("Islet" "Liver" "Adipose" "SkeletalMuscle")
 
-#tissueType=${tissues[$SLURM_ARRAY_TASK_ID]}
-tissueType=${tissues[2]}
+tissueType=${tissues[$SLURM_ARRAY_TASK_ID]}
+#tissueType=${tissues[2]}
 echo $tissueType
 
 module load singularity
