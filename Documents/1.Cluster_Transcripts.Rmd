@@ -229,6 +229,7 @@ function(x) characterize_module(x, n.terms = 5, order.by = "p_value", max.term.s
 
 ```{r plot_enrich}
 enrich_fig <- file.path(results.dir, "Enrichment.jpg")
+write.table(enrich_fig, file.path(results.dir, "figure.file.txt"))
 jpeg(enrich_fig, width = 9, height = 32, units = "in", res = 300)
 plot.enrichment.group(enrich, max.term.size = 500, plot.label = 
 paste(tissue.type, "Modules"), n.terms = 5)
@@ -305,10 +306,18 @@ if(!data.loaded){
 ```{r map_modules, fig.width = 12, fig.height = 8}
 scan.file <- file.path(results.dir, "qtl.scan.RDS")
 if(!file.exists(scan.file)){
- scans <- scan1(genoprobs, mod.eig)
+ scans <- scan1(genoprobs, mod.eig, kinship = K)
  saveRDS(scans, scan.file)
 }else{
   scans  <- readRDS(scan.file)
+}
+
+perm.file <- file.path(results.dir, "qtl.scan.perm.RDS")
+if(!file.exists(perm.file)){
+ scan.perm <- scan1perm(genoprobs, mod.eig[,1], kinship = K, n_perm = 100)
+ saveRDS(scan.perm, perm.file)
+}else{
+  scan.perm  <- readRDS(perm.file)
 }
 
 mod.dist <- dist(t(scans))

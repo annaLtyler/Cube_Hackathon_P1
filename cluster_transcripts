@@ -9,6 +9,7 @@
 #SBATCH --mail-user=anna.tyler@jax.org
 #SBATCH --mail-type=END
 # example use: sbatch --array=1-4 -N1 --export=clustType="WGCNA" cluster_transcripts
+# example use: sbatch --array=1-4 -N1 --export=clustType="CoExpNet" cluster_transcripts
 
 
 cd $SLURM_SUBMIT_DIR
