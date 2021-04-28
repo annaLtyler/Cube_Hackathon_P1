@@ -20,7 +20,7 @@ is.interactive = FALSE
 net.type = "signed"
 #net.type = "unsigned"
 
-tissues=("Islet", "Liver", "Adipose", "SkeletalMuscle")
+tissues = c("Islet", "Liver", "Adipose", "SkeletalMuscle")
 
 args <- commandArgs(trailingOnly=T)
 tissue.idx <- as.numeric(args[1])
