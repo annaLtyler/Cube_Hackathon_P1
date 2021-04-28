@@ -49,9 +49,16 @@ load_libraries(all.packages)
 
 
 ```{r read_data}
-#exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
-#testing hard coded path. Relative path with soft link files isn't working
-#for some reason
+data.dir <- here("Data", "RDS_datasets_tissues")
+
+sink("data_files.txt")
+list.files(data.dir)
+sink(NULL)
+
+sink("data_files_full.txt")
+list.files(data.dir, full.names = TRUE)
+sink(NULL)
+
 exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
 tissue.exp <- readRDS(exp.file)
 ```
