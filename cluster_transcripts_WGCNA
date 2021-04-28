@@ -8,9 +8,16 @@
 #SBATCH -e slurm.%N.%j.err # STDERR
 #SBATCH --mail-user=anna.tyler@jax.org
 #SBATCH --mail-type=END
-# example use: sbatch --export=tissueType="Liver" cluster_transcripts
+# example use: sbatch --array=1-4 -N1 cluster_transcripts
 
 cd $SLURM_SUBMIT_DIR
+echo $SLURM_ARRAY_TASK_ID
+
+tissues=("Islet" "Liver" "Adipose" "SkeletalMuscle")
+
+tissueIdx
+tissueType=${tissues[$SLURM_ARRAY_TASK_ID]}
+echo $tissueType
 
 module load singularity
 
