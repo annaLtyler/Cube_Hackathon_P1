@@ -227,13 +227,12 @@ mod.names <- sapply(enrich,
 function(x) characterize_module(x, n.terms = 5, order.by = "p_value", max.term.size = 500))
 ```
 
-```{r plot_enrich}
-enrich_fig <- file.path(results.dir, "Enrichment.jpg")
-write.table(enrich_fig, file.path(results.dir, "figure.file.txt"))
-jpeg(enrich_fig, width = 9, height = 32, units = "in", res = 300)
+```{r plot_enrich, fig.width = 9, fig.height = 32}
+#enrich_fig <- file.path(results.dir, "Enrichment.jpg")
+#jpeg(enrich_fig, width = 9, height = 32, units = "in", res = 300)
 plot.enrichment.group(enrich, max.term.size = 500, plot.label = 
 paste(tissue.type, "Modules"), n.terms = 5)
-dev.off()
+#dev.off()
 
 #plot.enrichment.group(enrich, max.term.size = 500, plot.label = 
 #paste(tissue.type, "Modules"), n.terms = 5)
@@ -241,7 +240,7 @@ dev.off()
 
 
 ```{r enrich_plot, results = "asis", echo = FALSE}
-cat(paste0("![](", enrich_fig, "){width=70%}\n"))
+#cat(paste0("![](", enrich_fig, "){width=70%}\n"))
 ```
 
 
@@ -273,17 +272,16 @@ for(i in 1:ncol(mod.pheno$X)){
 }
 ```
 
-```{r plot_cor}
-cor_fig <- file.path(results.dir, "Trait_Module_Correlation.Scans.jpg")
-jpeg(cor_fig, width = 8, height = 8, units = "in", res = 300)
+```{r plot_cor, fig.width = 8, fig.height = 8}
+#cor_fig <- file.path(results.dir, "Trait_Module_Correlation.Scans.jpg")
+#jpeg(cor_fig, width = 8, height = 8, units = "in", res = 300)
 pheatmap(t(cor.mat))
-dev.off()
+#dev.off()
 
-#pheatmap(t(cor.mat))
 ```
 
 ```{r cor_plot, results = "asis", echo = FALSE}
-cat(paste0("![](", cor_fig, "){width=100%}\n"))
+#cat(paste0("![](", cor_fig, "){width=100%}\n"))
 ```
 
 
@@ -327,16 +325,16 @@ thresh[which(thresh > 8)] <- 8
 ```
 
 ```{r plot_scan}
-scan_fig <- file.path(results.dir, "Module.Scans.jpg")
-jpeg(scan_fig, width = 12, height = 6, units = "in", res = 300)
+#scan_fig <- file.path(results.dir, "Module.Scans.jpg")
+#jpeg(scan_fig, width = 12, height = 6, units = "in", res = 300)
 par(xpd = TRUE)
 multilod.plot(thresh, map = map, lod.thresh = 5, border.lwd = 1, 
 row.names = colnames(mod.eig)[mod.order], row.name.shift = -nrow(thresh)*0.011, 
 row.text.cex = 0.7, mar = c(2, 10, 2, 0))
 par(xpd = FALSE)
-dev.off()
+#dev.off()
 ```
 
 ```{r scan_plot, results = "asis", echo = FALSE}
-cat(paste0("![](", scan_fig, "){width=70%}\n"))
+#cat(paste0("![](", scan_fig, "){width=70%}\n"))
 ```
