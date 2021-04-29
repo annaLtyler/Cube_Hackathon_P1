@@ -1,5 +1,5 @@
 ---
-title: "CAPE in using clustered transcripts in multiple tissues"
+title: "Transcript clustering in multiple tissues"
 author: Anna L Tyler
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: 
