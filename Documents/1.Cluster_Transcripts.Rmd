@@ -324,7 +324,7 @@ thresh <- scans[,mod.order]
 thresh[which(thresh > 8)] <- 8
 ```
 
-```{r plot_scan}
+```{r plot_scan, fig.width = 12, fig.height = 6}
 #scan_fig <- file.path(results.dir, "Module.Scans.jpg")
 #jpeg(scan_fig, width = 12, height = 6, units = "in", res = 300)
 par(xpd = TRUE)
