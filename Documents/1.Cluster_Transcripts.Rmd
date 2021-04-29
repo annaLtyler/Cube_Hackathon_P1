@@ -272,7 +272,7 @@ for(i in 1:ncol(mod.pheno$X)){
 }
 ```
 
-```{r plot_cor, fig.width = 8, fig.height = 8}
+```{r plot_cor, fig.width = 10, fig.height = 6}
 #cor_fig <- file.path(results.dir, "Trait_Module_Correlation.Scans.jpg")
 #jpeg(cor_fig, width = 8, height = 8, units = "in", res = 300)
 pheatmap(t(cor.mat))
