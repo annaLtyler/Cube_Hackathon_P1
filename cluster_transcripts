@@ -25,7 +25,7 @@ singularity exec /projects/carter-lab/atyler/Containers/cape_transcripts_latest.
 #add tissue and clustering method to html name
 tissues=("Islet" "Liver" "Adipose" "SkeletalMuscle") #tissues in same order as in Rmd
 oldname="1.Cluster_Transcripts.html"
-newname="1.Cluster_Transcripts_"${tissues[$tissueIdx]}"_"$clustType".html"
+newname="1.Cluster_Transcripts_"${tissues[$tissueIdx-1]}"_"$clustType".html"
 echo $newname
 mv Documents/$oldname Documents/$newname
 
