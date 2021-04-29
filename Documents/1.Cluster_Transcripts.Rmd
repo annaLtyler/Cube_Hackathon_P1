@@ -29,7 +29,7 @@ clust.type <- args[2]
 tissue.type <- tissues[tissue.idx]
 
 if(is.na(tissue.type)){
-  tissue.type = "Islet"
+  tissue.type = "Adipose"
 }
 
 if(is.na(clust.type)){
@@ -321,14 +321,17 @@ if(!file.exists(perm.file)){
 }else{
   scan.perm  <- readRDS(perm.file)
 }
+```
+
+Plot QTL scans thresholded at LOD = 5.
+
+```{r plot_scan, fig.width = 12, fig.height = 6}
 
 mod.dist <- dist(t(scans))
 mod.order <- hclust(mod.dist)$order
 thresh <- scans[,mod.order]
 thresh[which(thresh > 8)] <- 8
-```
 
-```{r plot_scan, fig.width = 12, fig.height = 6}
 #scan_fig <- file.path(results.dir, "Module.Scans.jpg")
 #jpeg(scan_fig, width = 12, height = 6, units = "in", res = 300)
 par(xpd = TRUE)
@@ -341,4 +344,24 @@ par(xpd = FALSE)
 
 ```{r scan_plot, results = "asis", echo = FALSE}
 #cat(paste0("![](", scan_fig, "){width=70%}\n"))
+```
+
+Find nominally significant ($p \leq 0.05$) QTL based on permutation testing.
+
+```{r sig_qtl}
+sig.thresh <- summary(scan.perm, alpha = 0.05)
+
+me.qtl <- vector(mode = "list", length = ncol(mod.eig))
+names(me.qtl) <- colnames(mod.eig)
+for(i in 1:length(sig.thresh)){
+  me.qtl[[i]] <- find_peaks(scans[,i,drop=FALSE], map, threshold = sig.thresh[i], 
+  prob = 0.95)
+}
+
+me.qtl.table <- Reduce("rbind", me.qtl)
+ordered.table <- me.qtl.table[order(me.qtl.table[,2]),]
+write.table(ordered.table[,2:ncol(ordered.table)], 
+file.path(results.dir, "QTL.Significant.Peaks.txt"), sep = "\t", quote = FALSE, 
+row.names = FALSE)
+
 ```
