@@ -32,6 +32,10 @@ if(is.na(tissue.type)){
   tissue.type = "Islet"
 }
 
+if(is.na(clust.type)){
+  clust.type = "WGCNA"
+}
+
 library(here)
 clust.dir <- here("Results", paste0(clust.type, "_Clusters"))
 if(!file.exists(clust.dir)){dir.create(clust.dir)}
@@ -312,7 +316,7 @@ if(!file.exists(scan.file)){
 
 perm.file <- file.path(results.dir, "qtl.scan.perm.RDS")
 if(!file.exists(perm.file)){
- scan.perm <- scan1perm(genoprobs, mod.eig[,1], kinship = K, n_perm = 100)
+ scan.perm <- scan1perm(genoprobs, mod.eig, kinship = K, n_perm = 100)
  saveRDS(scan.perm, perm.file)
 }else{
   scan.perm  <- readRDS(perm.file)
