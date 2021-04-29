@@ -256,7 +256,7 @@ We looked at the correlations between each module eigengene and each trait.
 ```{r mod_eig}
 mod.eig <- as.matrix(clust.net$MEs)
 rownames(mod.eig) <- rownames(adj.expr)
-write.table(mod.eig, file.path(results.dir, "Module_Eigengenes.RDS"))
+saveRDS(mod.eig, file.path(results.dir, "Module_Eigengenes.RDS"))
 
 #align the phenotype and eigengene matrices
 mod.pheno <- get.xz(mod.eig, adj.pheno)
@@ -347,6 +347,7 @@ par(xpd = FALSE)
 ```
 
 Find nominally significant ($p \leq 0.05$) QTL based on permutation testing.
+Write QTL to a table called QTL.Significant.Peaks.txt.
 
 ```{r sig_qtl}
 sig.thresh <- summary(scan.perm, alpha = 0.05)
@@ -363,5 +364,4 @@ ordered.table <- me.qtl.table[order(me.qtl.table[,2]),]
 write.table(ordered.table[,2:ncol(ordered.table)], 
 file.path(results.dir, "QTL.Significant.Peaks.txt"), sep = "\t", quote = FALSE, 
 row.names = FALSE)
-
 ```

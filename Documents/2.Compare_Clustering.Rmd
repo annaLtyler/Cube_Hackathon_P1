@@ -1,0 +1,244 @@
+---
+title: "Compare WGCNA and CoExpNets"
+author: Anna L Tyler
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+    code_folding: hide
+    collapsed: no
+    toc: yes
+    toc_float: yes
+---
+
+```{r set_type}
+#set testing to FALSE to run full gene expression networks and to TRUE
+#to run a subset.
+#testing = TRUE
+testing = FALSE
+is.interactive = FALSE
+#is.interactive = TRUE
+
+tissues = c("Islet", "Liver", "Adipose", "SkeletalMuscle")
+
+args <- commandArgs(trailingOnly=T)
+tissue.idx <- as.numeric(args[1])
+tissue.type <- tissues[tissue.idx]
+
+if(is.na(tissue.type)){
+  tissue.type = "Islet"
+}
+
+
+library(here)
+wgcna.dir <- here("Results", "WGCNA_Clusters", tissue.type)
+coexp.dir <- here("Results", "CoExpNet_Clusters", tissue.type)
+```
+
+## Introduction
+
+The purpose of this workflow is to compare clusters made by WGCNA and
+CoExpNets. We compare clusters fron a single tissue type based on 
+gene membership, correlation of module eigengenes, functional enrichments,
+and mapping.
+
+This report is for `r tissue.type`.
+
+```{r load_code}
+all.fun <- list.files(here("Code"), full.names = TRUE, pattern = ".R")
+for(i in 1:length(all.fun)){source(all.fun[i])}
+```
+
+```{r load_libraries, message = FALSE, warning = FALSE, error = FALSE}
+all.packages <- c("pheatmap", "gprofiler2", "CoExpNets", "qtl2", "WGCNA")
+load_libraries(all.packages)
+```
+
+
+```{r read_clustering_results}
+wgcna.gene.mem <- readRDS(file.path(wgcna.dir, "Module_Membership.RDS"))
+coexp.gene.mem <- readRDS(file.path(coexp.dir, "Module_Membership.RDS"))
+```
+
+## Basic Stats
+
+The following plots show basic statistics of the modules. How many there
+are, the number of genes, etc.
+
+```{r compare_stats, fig.width = 4, fig.height = 4}
+num.wgcna <- length(wgcna.gene.mem)
+num.coexp <- length(coexp.gene.mem)
+barplot(c("WGCNA" = num.wgcna, "CoExpNets" = num.coexp), main = "Number of Modules")
+```
+
+
+```{r compare_size, fig.width = 8, fig.height = 4}
+wgcna.genes <- sapply(wgcna.gene.mem, length)
+coexp.genes <- sapply(coexp.gene.mem, length)
+
+barplot(sort(wgcna.genes), main = "WGCNA genes per Module", las = 2)
+barplot(sort(coexp.genes), main = "CoExpNets genes per Module", las = 2)
+
+#boxplot(list("WGCNA" = wgcna.genes, "CoExpNets" = coexp.genes))
+```
+
+## Jaccard Indices 
+
+The following plots show Jaccard indices for gene membership across 
+clustering methods.
+
+```{r jaccard, fig.width = 8, fig.height = 6}
+jaccard.mat <- matrix(NA, nrow = length(wgcna.gene.mem), ncol = length(coexp.gene.mem))
+rownames(jaccard.mat) <- names(wgcna.gene.mem)
+colnames(jaccard.mat) <- names(coexp.gene.mem)
+for(i in 1:length(wgcna.gene.mem)){
+  for(j in 1:length(coexp.gene.mem)){
+    j.ind <- jaccard.ind(wgcna.gene.mem[[i]], coexp.gene.mem[[j]])
+    jaccard.mat[i,j] <- j.ind
+  }
+}
+pheatmap(t(jaccard.mat))
+```
+
+## Module Eigengene Correlation
+
+The following plot shows the correlations between module eigengenes.
+
+```{r mod_eig_cor, fig.width = 8, fig.height = 6}
+wgcna.eig <- readRDS(file.path(wgcna.dir, "Module_Eigengenes.RDS"))
+coexp.eig <- readRDS(file.path(coexp.dir, "Module_Eigengenes.RDS"))
+
+cor.mat <- matrix(NA, nrow = ncol(wgcna.eig), ncol = ncol(coexp.eig))
+rownames(cor.mat) <- colnames(wgcna.eig)
+colnames(cor.mat) <- colnames(coexp.eig)
+for(i in 1:ncol(wgcna.eig)){
+  for(j in 1:ncol(coexp.eig)){
+    eig.cor <- cor(wgcna.eig[,i], coexp.eig[,j])
+    cor.mat[i,j] <- eig.cor
+  }
+}
+pheatmap(t(cor.mat))
+```
+
+## Trait Correlations
+
+The following plot shows the correlations of the module eigengenes from each
+clustering method with the clinical trait.
+
+```{r trait_cor}
+exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
+tissue.exp <- readRDS(exp.file)
+tissue.covar <- tissue.exp$covar.matrix
+pheno <- read.csv(here("Data", "DO_clinical_phenotypes.csv"), stringsAsFactors = FALSE, row.names = 1)
+num.pheno <- apply(pheno[,11:30], 2, as.numeric)
+rownames(num.pheno) <- rownames(pheno)
+adj.pheno <- adjust(num.pheno, tissue.covar)
+
+wgcna.cor <- sapply(1:ncol(wgcna.eig), function(x) apply(adj.pheno, 2, function(y) cor(y, wgcna.eig[,x], use = "pairwise.complete.obs")))
+coexp.cor <- sapply(1:ncol(coexp.eig), function(x) apply(adj.pheno, 2, function(y) cor(y, coexp.eig[,x], use = "pairwise.complete.obs")))
+
+plot.grouped.boxes(list(t(wgcna.cor), t(coexp.cor)), 
+group.labels = c("WGCNA", "CoExpNet"), type = "matrix", plot.type = "strip")
+```
+
+The following plot shows the bext positive and negative correlations
+for each trait and each type of clustering. They are incredibly similar.
+
+```{r max_cor_compare, fig.width = 10, fig.height = 6}
+max.wgcna.cor <- apply(wgcna.cor, 1, function(x) c(max(x), min(x)))
+max.coexp.cor <- apply(coexp.cor, 1, function(x) c(max(x), min(x)))
+
+max.order <- order(max.wgcna.cor[1,])
+
+plot.new()
+plot.window(xlim = c(1,nrow(wgcna.cor)), ylim = c(-1, 1))
+points(max.wgcna.cor[1,max.order], type = "b", col = "#beaed4", pch = 16)
+points(max.wgcna.cor[2,max.order], type = "b", col = "#beaed4", pch = 16)
+points(max.coexp.cor[1,max.order], type = "b", col = "#7fc97f", pch = 16)
+points(max.coexp.cor[2,max.order], type = "b", col = "#7fc97f", pch = 16)
+axis(2)
+par(xpd = TRUE)
+text(x = 1:nrow(wgcna.cor), y = rep(-1, nrow(wgcna.cor)), 
+labels = colnames(num.pheno)[max.order],srt = 90, adj = 1)
+par(xpd = FALSE)
+abline(h = c(0, 0.5, -0.5), lty = c(1,2,2), col = "gray")
+legend("topleft", legend = c("WGCNA", "CoExpNets"), pch = 16, col = c("#beaed4", "#7fc97f"))
+```
+
+## Compare Mapping
+
+```{r qtl_fun}
+summarize_qtl <- function(qtl.table){
+  u_traits <- unique(qtl.table[,1])
+  num.traits <- length(u_traits)
+  num.qtl <- sapply(u_traits, function(x) length(which(qtl.table[,1] == x)))
+  max.lod <- sapply(u_traits, function(x) max(as.numeric(qtl.table[which(qtl.table[,1] == x),"lod"])))
+  qtl.chr <- table(unlist(lapply(u_traits, function(x) unique(qtl.table[which(qtl.table[,1] == x),"chr"]))))
+  results <- list("Traits_with_Sig_QTL" = u_traits, "QTL_Per_Trait" = num.qtl,
+  "Max_LOD" = max.lod, "QTL_Chr" = qtl.chr)
+  return(results)
+}
+```
+
+```{r raw_qtl, fig.width = 4, fig.height = 4}
+wgcna.qtl <- readRDS(file.path(wgcna.dir, "qtl.scan.RDS"))
+coexp.qtl <- readRDS(file.path(coexp.dir, "qtl.scan.RDS"))
+
+all.wgcna.vals <- as.vector(wgcna.qtl)
+all.coexp.vals <- as.vector(coexp.qtl)
+
+boxplot(list("WGCNA" = all.wgcna.vals, "CoExpNets" = all.coexp.vals),
+ylab = "LOD")
+
+#stripchart(list("WGCNA" = all.wgcna.vals, "CoExpNets" = all.coexp.vals),
+#method = "stack", pch = 16, col = "gray", vertical = TRUE)
+```
+
+```{r qtl}
+wgcna.qtl <- as.matrix(read.table(file.path(wgcna.dir, "QTL.Significant.Peaks.txt"), 
+header = TRUE, stringsAsFactors = FALSE))
+wgcna.summ <- summarize_qtl(wgcna.qtl)
+
+coexp.qtl <- as.matrix(read.table(file.path(coexp.dir, "QTL.Significant.Peaks.txt"), 
+header = TRUE, stringsAsFactors = FALSE))
+coexp.summ <- summarize_qtl(coexp.qtl)
+
+boxplot(list("WGCNA" = as.numeric(wgcna.qtl[,"lod"]), "CoExpNets" = as.numeric(coexp.qtl[,"lod"])))
+```
+
+## Enrichment
+
+The following plots compare enrichment statistics for modules created by the 
+two methods.
+
+```{r enrich_fun}
+summarize_enrich <- function(enrich.list){
+  num.with.enrichment <- length(which(sapply(enrich.list, length) > 0))
+  percent.with.enrichment <- num.with.enrichment/length(enrich.list)
+  terms.per.enrichment <- sapply(enrich.list, function(x) if(length(x) > 0){nrow(x[[1]])}else{0})
+  result  <- list("percent.with.enrichment" = percent.with.enrichment, 
+  "num.terms" = terms.per.enrichment)
+  return(result)
+}
+
+```
+
+```{r enrichment}
+wgcna.enrich <- readRDS(file.path(wgcna.dir, "enrich.RDS"))
+coexp.enrich <- readRDS(file.path(coexp.dir, "enrich.RDS"))
+
+wgcna.enrich.summary <- summarize_enrich(wgcna.enrich)
+coexp.enrich.summary <- summarize_enrich(coexp.enrich)
+
+barplot(c("WGCNA" = wgcna.enrich.summary[[1]], "CoExpNets" = coexp.enrich.summary[[1]]),
+main = "Percent Modules with Enrichments")
+
+par(mfrow = c(1,2))
+boxplot(list("WGCNA" = wgcna.enrich.summary[[2]], 
+"CoExpNets" = coexp.enrich.summary[[2]]))
+
+stripchart(list("WGCNA" = wgcna.enrich.summary[[2]], 
+"CoExpNets" = coexp.enrich.summary[[2]]), vertical = TRUE, method = "stack",
+pch = 16, col = "gray")
+mtext(side = 3, text = "Number of Significantly Enriched Terms", outer = TRUE,
+line = -2.5)
+```
