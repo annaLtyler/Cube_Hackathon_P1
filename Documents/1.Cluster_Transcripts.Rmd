@@ -29,7 +29,7 @@ clust.type <- args[2]
 tissue.type <- tissues[tissue.idx]
 
 if(is.na(tissue.type)){
-  tissue.type = "Adipose"
+  tissue.type = "Islet"
 }
 
 if(is.na(clust.type)){
@@ -68,6 +68,17 @@ exp.file <- here("Data", "RDS_datasets_tissues", paste0(tissue.type, ".RDS"))
 tissue.exp <- readRDS(exp.file)
 ```
 
+Also collect clinical traits.
+
+```{r pheno}
+pheno <- read.csv(here("Data", "DO_clinical_phenotypes.csv"), stringsAsFactors = FALSE, row.names = 1)
+#subset to numeric traits
+num.pheno <- apply(pheno[,11:30], 2, as.numeric)
+rownames(num.pheno) <- rownames(pheno)
+adj.pheno <- adjust(num.pheno, tissue.covar)
+gene.table <- tissue.exp$annot.mrna
+```
+
 ## Filter Expression
 Filter the expression matrices to include only genes that have at least
 a minimum amount of expression. 
@@ -85,16 +96,6 @@ adj.expr <- adjust(tissue.expr, tissue.covar)
 ```
 
 
-Also collect clinical traits.
-
-```{r pheno}
-pheno <- read.csv(here("Data", "DO_clinical_phenotypes.csv"), stringsAsFactors = FALSE, row.names = 1)
-#subset to numeric traits
-num.pheno <- apply(pheno[,11:30], 2, as.numeric)
-rownames(num.pheno) <- rownames(pheno)
-adj.pheno <- adjust(num.pheno, tissue.covar)
-gene.table <- tissue.exp$annot.mrna
-```
 
 ## Cluster gene expression using CoExpNets or WGCNA
 

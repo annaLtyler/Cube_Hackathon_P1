@@ -1,0 +1,50 @@
+##=====================================================================================##
+## Run clustering pipeline for different tissues
+## This document clusters both with WGCNA
+##=====================================================================================##
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "1" "WGCNA"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_WGCNA_Islet.html 
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "2" "WGCNA"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_WGCNA_Liver.html 
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "3" "WGCNA"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_WGCNA_Adipose.html 
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "4" "WGCNA"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_WGCNA_SkeletalMuscle.html 
+
+
+##=====================================================================================##
+## Run clustering pipeline for different tissues
+## This document clusters both with CoExpNets
+##=====================================================================================##
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "1" "CoExpNet"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_CoExpNet_Islet.html 
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "2" "CoExpNet"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_CoExpNet_Liver.html 
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "3" "CoExpNet"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_CoExpNet_Adipose.html 
+
+R -e "rmarkdown::render(here::here('Documents', '1.Cluster_Transcripts.Rmd'))" --args "4" "CoExpNet"
+mv Documents/1.Cluster_Transcripts.html Documents/1.Cluster_Transcripts_CoExpNet_SkeletalMuscle.html 
+
+##=====================================================================================##
+## Compare clustering methods for each tissue
+##=====================================================================================##
+
+R -e "rmarkdown::render(here::here('Documents', '2.Compare_Clustering.Rmd'))" --args "1"
+mv Documents/2.Compare_Clustering.html Documents/2.Compare_Clustering_Islet.html
+
+R -e "rmarkdown::render(here::here('Documents', '2.Compare_Clustering.Rmd'))" --args "2"
+mv Documents/2.Compare_Clustering.html Documents/2.Compare_Clustering_Liver.html
+
+R -e "rmarkdown::render(here::here('Documents', '2.Compare_Clustering.Rmd'))" --args "3"
+mv Documents/2.Compare_Clustering.html Documents/2.Compare_Clustering_Adipose.html
+
+R -e "rmarkdown::render(here::here('Documents', '2.Compare_Clustering.Rmd'))" --args "4"
+mv Documents/2.Compare_Clustering.html Documents/2.Compare_Clustering_SkeletalMuscle.html

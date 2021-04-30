@@ -25,7 +25,7 @@ tissue.idx <- as.numeric(args[1])
 tissue.type <- tissues[tissue.idx]
 
 if(is.na(tissue.type)){
-  tissue.type = "Islet"
+  tissue.type = "Adipose"
 }
 
 
@@ -134,10 +134,17 @@ rownames(num.pheno) <- rownames(pheno)
 adj.pheno <- adjust(num.pheno, tissue.covar)
 
 wgcna.cor <- sapply(1:ncol(wgcna.eig), function(x) apply(adj.pheno, 2, function(y) cor(y, wgcna.eig[,x], use = "pairwise.complete.obs")))
+colnames(wgcna.cor) <- colnames(wgcna.eig)
 coexp.cor <- sapply(1:ncol(coexp.eig), function(x) apply(adj.pheno, 2, function(y) cor(y, coexp.eig[,x], use = "pairwise.complete.obs")))
+colnames(coexp.cor) <- colnames(coexp.eig)
 
-plot.grouped.boxes(list(t(wgcna.cor), t(coexp.cor)), 
-group.labels = c("WGCNA", "CoExpNet"), type = "matrix", plot.type = "strip")
+wgcna.trait.max <- apply(wgcna.cor, 1, max)
+max.order <- order(wgcna.trait.max)
+
+plot.grouped.boxes(list(t(wgcna.cor[max.order,]), t(coexp.cor[max.order,])), 
+group.labels = c("WGCNA", "CoExpNet"), type = "matrix", plot.type = "strip",
+label.srt = 90)
+abline(h = c(0, 0.5, -0.5), lty = c(1, 2, 2), col = "gray")
 ```
 
 The following plot shows the bext positive and negative correlations
@@ -146,7 +153,6 @@ for each trait and each type of clustering. They are incredibly similar.
 ```{r max_cor_compare, fig.width = 10, fig.height = 6}
 max.wgcna.cor <- apply(wgcna.cor, 1, function(x) c(max(x), min(x)))
 max.coexp.cor <- apply(coexp.cor, 1, function(x) c(max(x), min(x)))
-
 max.order <- order(max.wgcna.cor[1,])
 
 plot.new()
@@ -194,15 +200,15 @@ ylab = "LOD")
 ```
 
 ```{r qtl}
-wgcna.qtl <- as.matrix(read.table(file.path(wgcna.dir, "QTL.Significant.Peaks.txt"), 
+wgcna.sig.qtl <- as.matrix(read.table(file.path(wgcna.dir, "QTL.Significant.Peaks.txt"), 
 header = TRUE, stringsAsFactors = FALSE))
-wgcna.summ <- summarize_qtl(wgcna.qtl)
+wgcna.summ <- summarize_qtl(wgcna.sig.qtl)
 
-coexp.qtl <- as.matrix(read.table(file.path(coexp.dir, "QTL.Significant.Peaks.txt"), 
+coexp.sig.qtl <- as.matrix(read.table(file.path(coexp.dir, "QTL.Significant.Peaks.txt"), 
 header = TRUE, stringsAsFactors = FALSE))
-coexp.summ <- summarize_qtl(coexp.qtl)
+coexp.summ <- summarize_qtl(coexp.sig.qtl)
 
-boxplot(list("WGCNA" = as.numeric(wgcna.qtl[,"lod"]), "CoExpNets" = as.numeric(coexp.qtl[,"lod"])))
+boxplot(list("WGCNA" = as.numeric(wgcna.sig.qtl[,"lod"]), "CoExpNets" = as.numeric(coexp.sig.qtl[,"lod"])))
 ```
 
 ## Enrichment
@@ -241,4 +247,183 @@ stripchart(list("WGCNA" = wgcna.enrich.summary[[2]],
 pch = 16, col = "gray")
 mtext(side = 3, text = "Number of Significantly Enriched Terms", outer = TRUE,
 line = -2.5)
+```
+
+## Combining trait correlation and mapping {.tabset .tabset-fade .tabset-pills}
+
+We are most interested in modules that have large QTLs *and* are highly 
+correlated with traits. 
+
+For each module 
+```{r cor_map}
+#this function finds the maximum and minimum trait correlation
+#for a module and the maximum LOD score. Any LOD scores above 
+#lod.thresh are set to lod.thresh. 
+match_cor_lod <- function(qtl.results, trait.cor.mat, lod.thresh = 8, cor.thresh = 0.2){
+  mods <- colnames(trait.cor.mat)
+  cor.lod.table <- matrix(NA, ncol = 5, nrow = length(mods))
+  rownames(cor.lod.table) <- mods
+  colnames(cor.lod.table) <- c("min.trait.cor", "min.trait", "max.trait.cor", "max.trait", "max.LOD")
+  for(i in 1:length(mods)){
+    min.cor <- min(trait.cor.mat[,i])
+    min.trait <- rownames(trait.cor.mat)[which.min(trait.cor.mat[,i])]
+    max.cor <- max(trait.cor.mat[,i])
+    max.trait <- rownames(trait.cor.mat)[which.max(trait.cor.mat[,i])]
+    max.lod <- max(qtl.results[,i])
+    cor.lod.table[i,] <- c(min.cor, min.trait, max.cor, max.trait, max.lod)
+  }
+  plot.table <- cor.lod.table
+  below.thresh.min <- which(abs(as.numeric(plot.table[,"min.trait.cor"])) < cor.thresh)
+  below.thresh.max <- which(abs(as.numeric(plot.table[,"max.trait.cor"])) < cor.thresh)
+
+  plot.table[which(as.numeric(plot.table[,"max.LOD"]) > lod.thresh),"max.LOD"] <- lod.thresh
+  plot.table[below.thresh.min,"min.trait.cor"] <- NA
+  plot.table[below.thresh.max,"max.trait.cor"] <- NA
+
+  min.label <- paste(rownames(plot.table), plot.table[,"min.trait"], sep = ":")
+  max.label <- paste(rownames(plot.table), plot.table[,"max.trait"], sep = ":")
+
+  plot.new()
+  plot.window(xlim = c(-1, 1), ylim = c(min(as.numeric(plot.table[,"max.LOD"])), lod.thresh))
+  points(plot.table[,"min.trait.cor"], plot.table[,"max.LOD"])
+  points(plot.table[,"max.trait.cor"], plot.table[,"max.LOD"])
+  axis(1);axis(2)
+  abline(v = c(0, 0.5, -0.5), lty = c(1,2,2), col = "gray")
+  
+  #add labels for the best combinations
+  text(x = as.numeric(plot.table[,"min.trait.cor"]), 
+  y = as.numeric(plot.table[,"max.LOD"]), labels = min.label,
+  cex = 0.7, offset = 0.5, pos = 2)
+
+  text(x = as.numeric(plot.table[,"max.trait.cor"]), 
+  y = as.numeric(plot.table[,"max.LOD"]), labels = max.label,
+  cex = 0.7, offset = 0.5, pos = 4)
+
+  mtext(side = 2, "LOD", line = 2.5)
+  mtext(side = 1, "ME-Trait Correlation", line = 2.5)
+
+  return(cor.lod.table)
+}
+```
+
+### WGCNA {.tabset .tabset-fade .tabset-pills}
+
+#### WGCNA Low LOD
+```{r wgcna_plots, fig.height = 10, fig.width = 7}
+#plot two versions, one to better visualize the lower LOD scores
+#and one to better visualize the higher LOD scores.
+#quartz(width = 10, height = 10)
+wgcna.cor.lod <- match_cor_lod(wgcna.qtl, wgcna.cor, 10, 0.3)
+```
+
+#### WGCNA High LOD
+```{r wgcna_high_lod, fig.height = 10, fig.width = 7}
+wgcna.cor.lod <- match_cor_lod(wgcna.qtl, wgcna.cor, 200, 0)
+```
+
+
+### CoExpNets {.tabset .tabset-fade .tabset-pills}
+
+#### CoExpNets Low LOD
+```{r coexp_plots_low_lod, fig.height = 10, fig.width = 7}
+#plot two versions, one to better visualize the lower LOD scores
+#and one to better visualize the higher LOD scores.
+#quartz(width = 10, height = 10)
+coexp.cor.lod <- match_cor_lod(coexp.qtl, coexp.cor, 10, 0.3)
+```
+
+#### CoExpNets High LOD
+```{r coexp_plots_high_lod, fig.height = 10, fig.width = 7}
+coexp.cor.lod <- match_cor_lod(coexp.qtl, coexp.cor, 200)
+```
+
+## Explore individual combinations
+
+The following code is used to look at individual module-trait combinations
+that look promising.
+
+
+```{r plot_ind_wgcna}
+all.var <- ls()
+data.loaded <- as.logical(length(which(all.var == "dataset.DO.Cube.Adipose")))
+if(!data.loaded){
+  load(here("Data", "dataset.DO.CUBE.multissue.RData"))
+}
+```
+
+```{r plot_ind_coexp}
+plot_example <- function(me.name, clust.type, min.lod = 4){
+  
+  if(clust.type == "CoExpNet"){
+    test.enrich <- coexp.enrich;test.cor <- coexp.cor;test.qtl <- coexp.qtl;test.eig <- coexp.eig
+  }else{
+    test.enrich <- wgcna.enrich;test.cor <- wgcna.cor;test.qtl <- wgcna.qtl;test.eig <- wgcna.eig
+  }
+
+  me.locale <- which(names(test.enrich) == me.name)
+  plot.enrichment(test.enrich[[me.locale]], num.terms = 30)
+
+  par(mar = c(10, 4, 2, 2))
+  barplot(sort(test.cor[,me.locale]), las = 2)
+
+  plot(test.qtl, lodcol = me.locale, map = map, main = "Module Eigengene LOD Scores")
+  peak_table <- find_peaks(test.qtl[,me.locale,drop=FALSE], threshold = min.lod, 
+  prob = 0.95, map = map)
+
+  #find the top LOD score
+  max.lod.locale <- which.max(peak_table[,"lod"])
+
+  trait.scan <- rownames(test.cor)[which.max(abs(test.cor[,me.locale]))]
+  #trait.scan <- rownames(test.cor)[order(test.cor[,me.locale])][19]
+  trait.locale <- which(colnames(adj.pheno) == trait.scan)
+
+  chr <- peak_table[max.lod.locale,"chr"]
+  chr.locale <- which(names(K) == chr)
+  allele.trait <- scan1coef(genoprobs[,chr.locale], 
+  adj.pheno[,trait.locale,drop=FALSE], kinship = K[chr.locale])
+
+  allele.me <- scan1coef(genoprobs[,chr.locale], test.eig[,me.locale], 
+  kinship = K[[chr.locale]], addcovar = tissue.exp$covar.matrix)
+
+  par(mfrow = c(2,1), mar = c(4,4,4,4))
+  plot_coefCC(allele.me, map = map, main = "Module Eigengene Coefficients")
+  abline(v = peak_table[max.lod.locale,"pos"])
+  plot_coefCC(allele.trait, map = map, main = paste(trait.scan, "Coefficients"))
+  abline(v = peak_table[max.lod.locale,"pos"])
+
+}
+```
+
+```{r plot_examples}
+if(tissue.type == "Liver"){
+  me.coexp = "turquoise"
+  me.wgcna = 36
+}
+if(tissue.type == "Islet"){
+  me.coexp = "orangered4"
+  #me.wgcna = 15
+  me.wgcna = 25
+}
+if(tissue.type == "Adipose"){
+  me.wgcna = 5
+  #me.coexp = "blue"
+  me.coexp = "turquoise"
+}
+if(tissue.type == "SkeletalMuscle"){
+
+}
+```
+
+## CoExpNets Example
+
+```{r}
+coexp.test.table <- plot_example(me.name = me.coexp, clust.type = "CoExpNet")
+#plot.enrichment(coexp.enrich$"yellow")
+```
+
+## WGCNA Example
+
+```{r}
+wgcna.test.table <- plot_example(me.name = me.wgcna, clust.type = "WGCNA")
+#plot.enrichment(wgcna.enrich$me.wgcna)
 ```
