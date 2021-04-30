@@ -75,6 +75,7 @@ pheno <- read.csv(here("Data", "DO_clinical_phenotypes.csv"), stringsAsFactors =
 #subset to numeric traits
 num.pheno <- apply(pheno[,11:30], 2, as.numeric)
 rownames(num.pheno) <- rownames(pheno)
+tissue.covar <- tissue.exp$covar.matrix
 adj.pheno <- adjust(num.pheno, tissue.covar)
 gene.table <- tissue.exp$annot.mrna
 ```
@@ -91,11 +92,8 @@ min.mean = 10
 
 tissue.trans <- which(colMeans(tissue.exp$data$raw) > min.mean)
 tissue.expr <- tissue.exp$data$rz[,tissue.trans]
-tissue.covar <- tissue.exp$covar.matrix
 adj.expr <- adjust(tissue.expr, tissue.covar)
 ```
-
-
 
 ## Cluster gene expression using CoExpNets or WGCNA
 
