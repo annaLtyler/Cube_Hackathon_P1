@@ -329,7 +329,7 @@ wgcna.cor.lod <- match_cor_lod(wgcna.qtl, wgcna.cor, 200, 0)
 #plot two versions, one to better visualize the lower LOD scores
 #and one to better visualize the higher LOD scores.
 #quartz(width = 10, height = 10)
-coexp.cor.lod <- match_cor_lod(coexp.qtl, coexp.cor, 10, 0.3)
+coexp.cor.lod <- match_cor_lod(coexp.qtl, coexp.cor, 10, 0.2)
 ```
 
 #### CoExpNets High LOD
@@ -361,12 +361,14 @@ plot_example <- function(me.name, clust.type, min.lod = 4){
   }
 
   me.locale <- which(names(test.enrich) == me.name)
-  plot.enrichment(test.enrich[[me.locale]], num.terms = 30)
+  plot.enrichment(test.enrich[[me.locale]], num.terms = 30, 
+  plot.label = paste("Enrichment for ME", me.name))
 
   par(mar = c(10, 4, 2, 2))
-  barplot(sort(test.cor[,me.locale]), las = 2)
+  barplot(sort(test.cor[,me.locale]), las = 2, 
+  main = paste("Trait-ME", me.name, "Correlations"))
 
-  plot(test.qtl, lodcol = me.locale, map = map, main = "Module Eigengene LOD Scores")
+  plot(test.qtl, lodcol = me.locale, map = map, main = paste("ME", me.name, "LOD Scores"))
   peak_table <- find_peaks(test.qtl[,me.locale,drop=FALSE], threshold = min.lod, 
   prob = 0.95, map = map)
 
@@ -385,8 +387,7 @@ plot_example <- function(me.name, clust.type, min.lod = 4){
   allele.me <- scan1coef(genoprobs[,chr.locale], test.eig[,me.locale], 
   kinship = K[[chr.locale]], addcovar = tissue.exp$covar.matrix)
 
-  par(mfrow = c(2,1), mar = c(4,4,4,4))
-  plot_coefCC(allele.me, map = map, main = "Module Eigengene Coefficients")
+  plot_coefCC(allele.me, map = map, main = paste("ME", me.name, "Coefficients"))
   abline(v = peak_table[max.lod.locale,"pos"])
   plot_coefCC(allele.trait, map = map, main = paste(trait.scan, "Coefficients"))
   abline(v = peak_table[max.lod.locale,"pos"])
@@ -410,20 +411,21 @@ if(tissue.type == "Adipose"){
   me.coexp = "turquoise"
 }
 if(tissue.type == "SkeletalMuscle"){
-
+  me.coexp = "black"
+  me.wgcna = 26
 }
 ```
 
 ## CoExpNets Example
 
-```{r}
+```{r, coexp_example}
 coexp.test.table <- plot_example(me.name = me.coexp, clust.type = "CoExpNet")
-#plot.enrichment(coexp.enrich$"yellow")
+#plot.enrichment(coexp.enrich$"red")
 ```
 
 ## WGCNA Example
 
-```{r}
+```{r, wgcna_example}
 wgcna.test.table <- plot_example(me.name = me.wgcna, clust.type = "WGCNA")
-#plot.enrichment(wgcna.enrich$me.wgcna)
+#plot.enrichment(wgcna.enrich$"47")
 ```
